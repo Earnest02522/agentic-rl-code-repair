@@ -79,15 +79,23 @@ This made tool behavior easier to analyze for a 3B model and reduced invalid too
 
 ## Environment
 
-The public code is intended for Python 3.10+.
+Conda is recommended for this project because the full pipeline depends on PyTorch, Transformers, PEFT, CUDA, and local model checkpoints.
+
+```bash
+conda create -n agentic-rl-code-repair python=3.10 -y
+conda activate agentic-rl-code-repair
+pip install -r requirements.txt
+```
+
+The original experiments used a local `Qwen2.5-Coder-3B-Instruct` checkpoint plus LoRA adapters. Full training and evaluation require a CUDA GPU, local model weights, generated workspaces, and hidden tests.
+
+For CPU-only inspection of the data builders and metric scripts, a standard Python `venv` also works:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
-The original experiments used a local `Qwen2.5-Coder-3B-Instruct` checkpoint plus LoRA adapters. Full training and evaluation require a CUDA GPU, local model weights, generated workspaces, and hidden tests.
 
 ## Data Preparation
 
