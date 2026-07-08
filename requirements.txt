@@ -1,0 +1,6 @@
+pytest
+numpy
+pandas
+torch
+transformers
+peft

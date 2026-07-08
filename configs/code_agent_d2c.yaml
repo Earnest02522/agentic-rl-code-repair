@@ -1,0 +1,91 @@
+project:
+  name: closed_loop_agentic_rl
+  scenario: constrained_code_repair_agent
+  description: "Closed-loop Agentic RL for verifiable JS/TS code repair with 3B models on 8x RTX 4090."
+
+model:
+  base_model: Qwen/Qwen2.5-3B
+  sft_adapter: null
+  rl_adapter: null
+
+environment:
+  workspace_root: agentic-rl/workspaces
+  max_turns: 6
+  max_tool_calls: 8
+  timeout_seconds_per_tool: 60
+  tools:
+    - search_grep
+    - view_file
+    - apply_patch
+    - run_test
+
+task_filter:
+  languages:
+    - javascript
+    - typescript
+    - python
+  max_changed_files_train: 3
+  max_changed_files_eval: 5
+  max_changed_lines_train: 80
+  max_changed_lines_eval: 150
+  preferred_changed_lines_min: 5
+  preferred_changed_lines_max: 60
+  max_target_file_lines_train: 800
+  max_test_seconds_train: 60
+  max_test_seconds_rl: 30
+  allow_external_services: false
+  require_deterministic_verifier: true
+
+verifier:
+  required_checks:
+    - tests
+    - patch_applies
+    - allowed_files_only
+  optional_checks:
+    - typescript
+    - lint
+    - task_specific_assertions
+
+reward:
+  success: 1.0
+  failed: 0.0
+  repair_bonus: 0.2
+  invalid_tool_penalty: -0.10
+  repeated_call_penalty: -0.05
+  excessive_turn_penalty: -0.02
+  ignored_observation_penalty: -0.05
+  timeout_penalty: -0.20
+  patch_format_reward: 0.10
+  test_progress_reward: 0.20
+
+training:
+  base_model: Qwen/Qwen2.5-3B-Instruct
+  primary_method: lora_sft
+  optional_method: grpo_rlvr
+  sft:
+    max_seq_len: 8192
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 4
+    lora_r: 16
+    lora_alpha: 32
+    epochs: 1
+    target_trajectory_count: 10000
+  grpo:
+    prompt_count_smoke: 100
+    prompt_count_formal: 500
+    group_size_start: 4
+    group_size_max: 8
+    max_prompt_len: 6144
+    max_response_len: 1024
+
+evaluation:
+  metrics:
+    - task_success_rate
+    - repair_success_rate
+    - avg_tool_calls
+    - invalid_tool_call_rate
+    - repeated_call_rate
+    - cost_per_success
+    - error_attribution_accuracy
+    - pass_at_1
+    - pass_at_k

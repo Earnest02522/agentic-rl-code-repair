@@ -1,0 +1,22 @@
+{
+  "tasks": 600,
+  "rollouts": 600,
+  "samples": 1137,
+  "sample_type_counts": {
+    "gold_repair": 600,
+    "routed_success_distill": 537
+  },
+  "source_counts": {
+    "gold_patch": 600,
+    "r1c_v2": 420,
+    "r1c_v1": 117
+  },
+  "skipped": {
+    "not_success": 63
+  },
+  "include_gold": true,
+  "success_only": true,
+  "clean_only": false,
+  "max_clean_tool_calls": 5,
+  "output": "agentic-rl/data/sft/controlled_py_v2_family_routed_distill_train.jsonl"
+}

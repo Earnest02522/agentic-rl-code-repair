@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local workspaces, rollouts, model weights, and generated training artifacts.
+models/
+outputs/
+workspaces/
+results/rollouts/
+data/hidden_tests/
+data/tasks/*.jsonl
+data/sft/*.jsonl
+data/rl/*.jsonl
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Server-specific launchers.
+scripts/*.sh
+
+# Secrets and local environment files.
+.env
+*.env
+*token*
+*secret*
+*key*

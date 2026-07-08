@@ -1,0 +1,127 @@
+{
+  "total": 100,
+  "final_success": 96,
+  "pass_at_1": 96.0,
+  "public_pass_rate": 96.0,
+  "avg_tool_calls": 3.02,
+  "avg_invalid_calls": 0.2,
+  "invalid_call_rate_per_step": 6.21,
+  "avg_repeated_calls": 0.05,
+  "repeated_call_rate_per_tool_step": 1.66,
+  "avg_total_tokens": 1553.97,
+  "cost_per_success_tokens": 1618.72,
+  "tool_name_counts": {
+    "view_file": 100,
+    "replace_file": 101,
+    "run_test": 101
+  },
+  "by_family": {
+    "aggregation": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "boundary_condition": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "business_rule": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "cache_invalidation": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "chunking": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "config_merge": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "csv_parsing": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "filtering": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "nested_update": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "normalization_deduplication": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "pagination": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "parsing": {
+      "total": 5,
+      "success": 1,
+      "pass_at_1": 20.0
+    },
+    "parsing_normalization": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "path_handling": {
+      "total": 10,
+      "success": 10,
+      "pass_at_1": 100.0
+    },
+    "sorting_ranking": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "state_machine": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "state_update": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "statistics": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    },
+    "string_transformation": {
+      "total": 5,
+      "success": 5,
+      "pass_at_1": 100.0
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "total": 50,
+      "success": 50,
+      "pass_at_1": 100.0
+    },
+    "medium": {
+      "total": 50,
+      "success": 46,
+      "pass_at_1": 92.0
+    }
+  }
+}
