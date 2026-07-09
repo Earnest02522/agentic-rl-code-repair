@@ -1,6 +1,6 @@
 # Agentic RL Code Repair
 
-This repository contains a lightweight public release of a closed-loop Agentic RL project for tool-augmented code repair. The system builds a controlled Python repair benchmark, runs tool-use rollouts, verifies success with public and hidden tests, attributes failure modes, regenerates SFT/RLVR-style data, and distills successful behavior into a single deployable LoRA adapter.
+This repository contains a lightweight public release of a closed-loop Agentic RL project for tool-augmented code repair. The system builds a controlled Python repair benchmark, runs tool-use rollouts, verifies success with public and hidden tests, attributes failure modes, performs SFT followed by verifier-reward GRPO/RLVR refinement, routes between two complementary refined adapters, and distills routed-success behavior into a single deployable LoRA adapter.
 
 Large model weights, LoRA checkpoints, full rollout traces, hidden tests, generated workspaces, and server-specific launchers are intentionally excluded from this public release.
 
@@ -8,7 +8,7 @@ Large model weights, LoRA checkpoints, full rollout traces, hidden tests, genera
 
 - Built `Controlled-PyRepair-800`, a deterministic 800-task Python repair benchmark with public tests, hidden verifiers, 20 bug families, and a 600/100/100 train/validation/heldout split.
 - Designed a compact tool protocol for small code agents: `view_file`, `replace_file`, `run_test`, and `final`.
-- Converted verified rollouts into clean SFT, curated RLVR-style data, family-routed teacher behavior, and a final single-LoRA distilled policy.
+- Converted verified rollouts into clean SFT data, two verifier-reward GRPO/RLVR-refined teacher adapters, family-routed teacher behavior, and a final single-LoRA distilled policy.
 - Improved heldout Pass@1 from 5.33% base rollout to 96.00% with the distilled single LoRA, while reducing repeated tool calls from 62.13% to 1.66%.
 
 ## Results
@@ -20,11 +20,11 @@ Benchmark: `Controlled-PyRepair-800`, a deterministic 800-task Python repair ben
 | Base rollout | train | 5.33% | 32/600 | 4.76 | 17.09% | 62.13% | 204485.88 |
 | Naive SFT | heldout | 6.00% | 6/100 | 5.01 | 12.11% | 65.47% | 196839.33 |
 | Clean SFT | heldout | 65.00% | 65/100 | 3.24 | 0.00% | 3.70% | 3112.89 |
-| Curated RLVR-style data | heldout | 70.00% | 70/100 | 3.00 | 0.00% | 0.00% | 2248.27 |
-| Family-routed teacher | heldout | 90.00% | 90/100 | 3.06 | 0.00% | 0.98% | 1658.22 |
+| v2 GRPO/RLVR adapter | heldout | 70.00% | 70/100 | 3.00 | 0.00% | 0.00% | 2248.27 |
+| Family-routed GRPO/RLVR teacher | heldout | 90.00% | 90/100 | 3.06 | 0.00% | 0.98% | 1658.22 |
 | Distilled single LoRA | heldout | 96.00% | 96/100 | 3.02 | 6.21% | 1.66% | 1618.72 |
 
-The final result is a single LoRA adapter distilled from train-split routed-success trajectories plus gold repairs. Validation Pass@1 is 95% and heldout Pass@1 is 96%, which reduces the likelihood that the heldout result is a one-off fluctuation.
+The final result is a single LoRA adapter distilled from train-split routed-success trajectories plus gold repairs. The routed teacher uses a fixed bug-family policy over two complementary GRPO/RLVR-refined adapters: v2 is the default teacher and v1 is used for families where it generalizes better. Validation Pass@1 is 95% and heldout Pass@1 is 96%, which reduces the likelihood that the heldout result is a one-off fluctuation.
 
 ## Benchmark Design
 
@@ -36,7 +36,7 @@ Each task is a small Python repository with:
 - Hidden tests outside the workspace for final verification.
 - Metadata for split, difficulty, bug family, and verifier command.
 
-The heldout split is never used to build SFT, RLVR-style, routing, or distillation data. The final single-LoRA model is trained from train-split gold repairs plus train-split routed-success trajectories.
+The heldout split is never used to build SFT, GRPO/RLVR refinement, routing, or distillation data. The final single-LoRA model is trained from train-split gold repairs plus train-split routed-success trajectories.
 
 ## Method Overview
 
@@ -45,13 +45,14 @@ task execution
   -> public / hidden verifier
   -> trajectory logging
   -> failure attribution
-  -> clean SFT / curated RLVR-style data
-  -> family-level routing analysis
+  -> clean SFT
+  -> verifier-reward GRPO/RLVR refinement
+  -> family-level routing over two refined adapters
   -> routed-success distillation
   -> single-LoRA evaluation
 ```
 
-The key lesson from the project is that simply imitating raw rollouts is fragile for a 3B code agent. The naive SFT model inherited repeated `run_test` loops and low success. Filtering imitation targets to clean successful repairs, then using verifier-driven family attribution and distillation, produced a much more stable and deployable policy.
+The key lesson from the project is that simply imitating raw rollouts is fragile for a 3B code agent. The naive SFT model inherited repeated `run_test` loops and low success. Clean SFT fixed the imitation target, verifier-reward GRPO/RLVR refinement produced complementary teacher adapters, and family-level routing exposed which teacher worked best for each bug family. Distilling only routed-success trajectories into one LoRA then removed runtime routing overhead and produced a more stable deployable policy.
 
 ## Repository Structure
 
@@ -60,7 +61,7 @@ agents/          Tool-use rollout agent and action protocol.
 environments/    Code execution tools and sandbox/verifier interfaces.
 verifier/        Public and hidden test verification entrypoints.
 evaluation/      Rollout metric aggregation and family routing analysis.
-training/        SFT, clean-SFT, curated data, and distillation data builders.
+training/        SFT, clean-SFT, RLVR data, and distillation data builders.
 scripts/         Benchmark construction and evaluation helpers.
 reports/         Experiment reports and final interpretation.
 results/metrics/ Small JSON metric summaries for the final runs.
@@ -115,7 +116,12 @@ python scripts/materialize_workspaces.py --help
 
 ## Distillation Data
 
-The final distillation data uses only train split sources:
+The final distillation data uses only train split sources. The routed teacher is built from two GRPO/RLVR-refined adapters:
+
+- Default teacher: v2 adapter.
+- Override teacher: v1 adapter for `config_merge`, `csv_parsing`, `state_update`, and `string_transformation`.
+
+This fixed family-level routing reached 90% heldout Pass@1 before distillation.
 
 | Sample type | Count |
 | --- | ---: |
@@ -123,7 +129,7 @@ The final distillation data uses only train split sources:
 | Routed-success distillation | 537 |
 | Total | 1137 |
 
-Failed routed trajectories were excluded from imitation targets. This is why the single adapter can outperform the routed teacher on heldout: it is not a pure clone of teacher outputs, but a filtered and supervised retraining stage over successful behaviors plus gold repairs.
+Failed routed trajectories were excluded from imitation targets. This is why the single adapter can outperform the routed teacher on heldout: it is not a pure clone of teacher outputs. The routed teacher uses a coarse fixed bug-family route and still includes routing/teacher failure cases during evaluation, while distillation keeps only train-split verifier-passing routed trajectories and mixes them with gold repairs. The student therefore learns the successful behavior union of both teachers without carrying over the fixed runtime routing mechanism.
 
 ## Training Data Builders
 
@@ -141,9 +147,20 @@ Typical progression:
 
 1. Build naive SFT data from raw trajectories.
 2. Build clean SFT data from gold repairs and successful trajectories.
-3. Build curated RLVR-style data by keeping verifier-positive or repairable examples.
-4. Analyze weak bug families and build routed-success distillation data.
-5. Train a single LoRA adapter from gold repairs plus routed-success trajectories.
+3. Run verifier-reward GRPO/RLVR refinement from the clean SFT policy to obtain two complementary teacher adapters.
+4. Analyze weak bug families and build a fixed family-routed teacher over the two refined adapters.
+5. Train a single LoRA student from gold repairs plus train-split routed-success trajectories.
+
+## GRPO/RLVR Refinement
+
+The original experiments used verifier reward to refine the clean-SFT policy before routing and distillation. The reward combined hidden verifier success, public-test success, patch-change checks, invalid/repeated tool-call penalties, excessive-tool-use penalties, hidden-test-access penalties, and token-cost penalties.
+
+The final routed teacher uses two complementary refined adapters:
+
+- `v2` refined adapter: default policy, strongest on most bug families and most tool-efficient.
+- `v1` refined adapter: override policy for `config_merge`, `csv_parsing`, `state_update`, and `string_transformation`.
+
+The public release keeps the reward/data builders and experiment reports, but does not publish large checkpoints, full rollout traces, hidden tests, or machine-specific distributed GRPO launchers.
 
 ## LoRA Training
 
@@ -231,7 +248,7 @@ Full reproduction requires local model checkpoints, generated workspaces, hidden
 - This is a controlled code-repair benchmark, not a claim of broad SWE-bench-style real-repository generalization.
 - The hidden tests and full rollout traces are not published to avoid turning the benchmark into a memorization target and to keep the repository lightweight.
 - The reported `Cost / success` is measured in rollout token usage, not API billing cost.
-- The term `RLVR-style` here refers to verifier-curated training data and reward-style selection logic. The public release focuses on the data/verifier pipeline and LoRA distillation artifact, not on shipping a full distributed RL training stack.
+- The original experiments included verifier-reward GRPO/RLVR refinement, but this public release intentionally excludes large checkpoints, full rollout traces, hidden tests, and machine-specific distributed launchers. The repository focuses on the benchmark generator, verifier/data pipeline, training-data construction logic, distillation code, reports, and final metrics.
 
 ## Public Release Note
 
